@@ -7,7 +7,7 @@ from google.oauth2 import service_account
 
 # Load your service account credentials file
 SCOPES = ['https://www.googleapis.com/auth/drive']
-CREDENTIALS_FILE = 'C:\\Users\\user\\Desktop\\Data_Epic\\Automation_Review_Analysis_With_Cohere_&_Gspread\\credentials.json'
+CREDENTIALS_FILE = 'credentials.json'
 
 # Set up your credentials (make sure you handle the credentials appropriately)
 creds = service_account.Credentials.from_service_account_file(
