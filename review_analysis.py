@@ -32,7 +32,7 @@ class GoogleSheetHandler:
         self.sheet.update_cell(row_index, 6, action_needed)
 
         if sentiment.lower() == "negative":
-            fmt = CellFormat(backgroundColor=color(1, 0.9, 0.9))  # Light red
+            fmt = CellFormat(backgroundColor=Color(1, 0.9, 0.9))  # Light red
             format_cell_range(self.sheet, f"A{row_index}:D{row_index}", fmt)
     
     # A function for pie chart
