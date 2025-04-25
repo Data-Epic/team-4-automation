@@ -1,10 +1,10 @@
 import cohere
-from cohere.errors import TooManyRequestsError
 import re
-import time
 import logging
+import time
 from typing import Tuple
-from config.settings import settings
+import os
+from cohere.errors import TooManyRequestsError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,7 +14,12 @@ class CohereAnalyzer:
 
     def __init__(self):
         """Initialize Cohere client with API key."""
-        self.client = cohere.Client(settings.COHERE_API_KEY)
+        api_key = os.getenv("COHERE_API_KEY")
+        if not api_key:
+            logger.error("COHERE_API_KEY is not set in environment variables")
+            raise ValueError("COHERE_API_KEY is not set")
+        logger.info(f"COHERE_API_KEY length: {len(api_key)}")  # Debug log
+        self.client = cohere.Client(api_key)
 
     def analyze_review(self, text: str) -> Tuple[str, str]:
         """Analyzes a review for sentiment and generates a summary.
@@ -46,6 +51,9 @@ class CohereAnalyzer:
             except TooManyRequestsError:
                 logger.warning("Rate limit reached. Sleeping for 60 seconds...")
                 time.sleep(60)
+            except Exception as e:
+                logger.error(f"Cohere API error: {str(e)}")
+                raise
 
         full_text = response.text.strip()
         label_match = re.search(r"\*\*Label:\*\*\s*(\w+)", full_text, re.IGNORECASE)
