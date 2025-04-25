@@ -28,7 +28,7 @@ class PieChartGenerator:
             df = pd.DataFrame(self.data)
             sentiment_counts = df['AI Sentiment'].value_counts()
             
-            plt.figure(figsize=(6, 6))
+            plt.figure(figsize=(8, 8))
             plt.pie(
                 sentiment_counts,
                 labels=sentiment_counts.index,
@@ -36,9 +36,9 @@ class PieChartGenerator:
                 colors=["green", "red", "gray"]
             )
             plt.title("Sentiment Breakdown")
-
+            
             buffer = BytesIO()
-            plt.savefig(buffer, format='png')
+            plt.savefig(buffer, format='png', dpi=150)  # High DPI for better quality
             buffer.seek(0)
             plt.close()
             

@@ -18,7 +18,7 @@ class GoogleDriveService:
             settings.CREDENTIALS_FILE, scopes=self.scopes
         )
         self.service = build('drive', 'v3', credentials=self.creds)
-
+        
     def upload_image(self, file_path: str, file_name: str) -> Optional[str]:
         """Uploads an image file to Google Drive and returns the image URL.
 
@@ -36,6 +36,13 @@ class GoogleDriveService:
                 body=file_metadata, media_body=media, fields='id'
             ).execute()
             file_id = uploaded_file.get('id')
+            
+            # Set file permissions to public
+            self.service.permissions().create(
+                fileId=file_id,
+                body={'role': 'reader', 'type': 'anyone'}
+            ).execute()
+            
             file_url = f"https://drive.google.com/uc?id={file_id}"
             logger.info(f"Successfully uploaded image: {file_url}")
             return file_url

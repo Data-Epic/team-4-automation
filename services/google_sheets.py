@@ -1,6 +1,7 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from gspread_formatting import CellFormat, Color, format_cell_range
+from googleapiclient.discovery import build
 from config.settings import settings
 import logging
 from typing import List, Dict, Any
@@ -53,16 +54,91 @@ class GoogleSheetsService:
         except Exception as e:
             logger.error(f"Failed to write analysis to row {row_index}: {e}")
             raise
-        
-    def insert_chart_image(self, image_url: str) -> None:
-        """Inserts a chart image into the Google Sheet using IMAGE formula.
+
+    def create_pie_chart(self, sentiment_data: List[Dict[str, str]]) -> None:
+        """Creates a pie chart in the Google Sheet using sentiment data.
 
         Args:
-            image_url: URL of the image to insert.
+            sentiment_data: List of dictionaries containing sentiment information.
         """
         try:
-            self.sheet.update_cell(2, 6, f'=IMAGE("{image_url}", 1)')
-            logger.info("Inserted chart image into sheet")
+            self.sheet.update_cell(2, 7, '')
+
+            # Initialize Sheets API service
+            creds = ServiceAccountCredentials.from_json_keyfile_name(
+                settings.CREDENTIALS_FILE, settings.SCOPES
+            )
+            service = build('sheets', 'v4', credentials=creds)
+            spreadsheet_id = self.sheet.spreadsheet.id
+
+            # Write sentiment counts to a temporary range (e.g., H1:I4)
+            from pandas import DataFrame
+            df = DataFrame(sentiment_data)
+            sentiment_counts = df['AI Sentiment'].value_counts()
+            
+            # Prepare data for the chart
+            chart_data = [["Sentiment", "Count"]]
+            for sentiment, count in sentiment_counts.items():
+                chart_data.append([sentiment, count])
+            
+            # Write the data to H1:I4
+            self.sheet.update('H1:I4', chart_data)
+
+            # Create the pie chart
+            requests = [{
+                "addChart": {
+                    "chart": {
+                        "spec": {
+                            "title": "Sentiment Distribution",
+                            "pieChart": {
+                                "legendPosition": "LABELED_LEGEND",
+                                "threeDimensional": True,
+                                "domain": {
+                                    "sourceRange": {
+                                        "sources": [{
+                                            "sheetId": self.sheet.id,
+                                            "startRowIndex": 0,
+                                            "endRowIndex": len(chart_data),
+                                            "startColumnIndex": 7,  # H
+                                            "endColumnIndex": 8     # I
+                                        }]
+                                    }
+                                },
+                                "series": {
+                                    "sourceRange": {
+                                        "sources": [{
+                                            "sheetId": self.sheet.id,
+                                            "startRowIndex": 0,
+                                            "endRowIndex": len(chart_data),
+                                            "startColumnIndex": 8,  # I
+                                            "endColumnIndex": 9     # J
+                                        }]
+                                    }
+                                }
+                            }
+                        },
+                        "position": {
+                            "overlayPosition": {
+                                "anchorCell": {
+                                    "sheetId": self.sheet.id,
+                                    "rowIndex": 1,  # Row 2
+                                    "columnIndex": 9  # Column J
+                                },
+                                "widthPixels": 500,
+                                "heightPixels": 500
+                            }
+                        }
+                    }
+                }
+            }]
+
+            # Execute the request
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet_id,
+                body={"requests": requests}
+            ).execute()
+
+            logger.info("Inserted pie chart into sheet")
         except Exception as e:
-            logger.error(f"Failed to insert chart image: {e}")
+            logger.error(f"Failed to insert pie chart: {e}")
             raise
